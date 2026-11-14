@@ -1,13 +1,78 @@
 package trainings
 
+import (
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/Yandex-Practicum/tracker/internal/personaldata"
+	"github.com/Yandex-Practicum/tracker/internal/spentenergy"
+)
+
 type Training struct {
-	// TODO: добавить поля
+	personaldata.Personal
+
+	Steps        int
+	TrainingType string
+	Duration     time.Duration
 }
 
 func (t *Training) Parse(datastring string) (err error) {
-	// TODO: реализовать функцию
+	parts := strings.Split(datastring, ",")
+	if len(parts) != 3 {
+		return fmt.Errorf(`invalid number of values: %d (%q), must be 3 ("steps,activity,duration")`, len(parts), datastring)
+	}
+
+	stepsRaw, trainingType, durationRaw := parts[0], parts[1], parts[2]
+	t.TrainingType = trainingType
+
+	steps, err := strconv.Atoi(stepsRaw)
+	if err != nil {
+		return fmt.Errorf("invalid steps format: %w", err)
+	}
+	if steps <= 0 {
+		return fmt.Errorf("nonpositive number of steps: %d", steps)
+	}
+	t.Steps = steps
+
+	duration, err := time.ParseDuration(durationRaw)
+	if err != nil {
+		return fmt.Errorf("invalid duration: %s", durationRaw)
+	}
+	if duration <= 0 {
+		return fmt.Errorf("nonpositive duration: %v", duration)
+	}
+	t.Duration = duration
+
+	return nil
 }
 
 func (t Training) ActionInfo() (string, error) {
-	// TODO: реализовать функцию
+	dist := spentenergy.Distance(t.Steps, t.Height)
+	mSpeed := spentenergy.MeanSpeed(t.Steps, t.Height, t.Duration)
+
+	var cal float64
+	var err error
+
+	switch t.TrainingType {
+	case "Ходьба":
+		cal, err = spentenergy.WalkingSpentCalories(t.Steps, t.Weight, t.Height, t.Duration)
+	case "Бег":
+		cal, err = spentenergy.RunningSpentCalories(t.Steps, t.Weight, t.Height, t.Duration)
+	default:
+		err = fmt.Errorf("неизвестный тип тренировки")
+	}
+
+	if err != nil {
+		return "", err
+	}
+
+	formatStr := `Тип тренировки: %s
+Длительность: %.2f ч.
+Дистанция: %.2f км.
+Скорость: %.2f км/ч
+Сожгли калорий: %.2f
+`
+	return fmt.Sprintf(formatStr, t.TrainingType, t.Duration.Hours(), dist, mSpeed, cal), nil
 }
