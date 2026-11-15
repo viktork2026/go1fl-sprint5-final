@@ -25,7 +25,6 @@ func (t *Training) Parse(datastring string) (err error) {
 	}
 
 	stepsRaw, trainingType, durationRaw := parts[0], parts[1], parts[2]
-	t.TrainingType = trainingType
 
 	steps, err := strconv.Atoi(stepsRaw)
 	if err != nil {
@@ -34,7 +33,6 @@ func (t *Training) Parse(datastring string) (err error) {
 	if steps <= 0 {
 		return fmt.Errorf("nonpositive number of steps: %d", steps)
 	}
-	t.Steps = steps
 
 	duration, err := time.ParseDuration(durationRaw)
 	if err != nil {
@@ -43,6 +41,9 @@ func (t *Training) Parse(datastring string) (err error) {
 	if duration <= 0 {
 		return fmt.Errorf("nonpositive duration: %v", duration)
 	}
+
+	t.TrainingType = trainingType
+	t.Steps = steps
 	t.Duration = duration
 
 	return nil
